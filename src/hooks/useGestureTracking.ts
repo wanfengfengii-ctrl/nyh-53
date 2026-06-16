@@ -55,7 +55,7 @@ export const useGestureTracking = (
     const point = getCanvasCoordinates(touch.clientX, touch.clientY);
     if (point) {
       setIsDrawing(true);
-      setPoints([point]);
+      setPoints(prev => [...prev, point]);
     }
   };
 

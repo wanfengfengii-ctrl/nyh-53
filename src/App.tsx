@@ -124,7 +124,6 @@ const App: Component = () => {
   };
 
   const handlePlaybackStart = () => {
-    setPlaybackPoints([]);
     playback.play();
   };
 

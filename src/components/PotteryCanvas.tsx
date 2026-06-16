@@ -45,22 +45,87 @@ export const PotteryCanvas: Component<PotteryCanvasProps> = (props) => {
     return contourToSvgPath(props.generatedContour, props.width, props.height, centerX());
   };
 
-  const deviationHighlightPaths = () => {
+  const deviationHighlightRects = () => {
     if (!props.generatedContour || props.deviationSegments.length === 0) return [];
 
     const padding = 20;
     const effectiveHeight = props.height - padding * 2;
+    const center = centerX();
+    const maxRadius = (props.width - padding * 2) / 2;
 
     return props.deviationSegments.map((segment, idx) => {
       const startY = props.height - padding - segment.startHeight * effectiveHeight;
       const endY = props.height - padding - segment.endHeight * effectiveHeight;
+      const height = Math.abs(endY - startY);
+
+      const startIdx = Math.floor(segment.startHeight * (props.generatedContour!.length - 1));
+      const endIdx = Math.floor(segment.endHeight * (props.generatedContour!.length - 1));
+      const segmentPoints = props.generatedContour!.slice(
+        Math.min(startIdx, endIdx),
+        Math.max(startIdx, endIdx) + 1
+      );
+
+      const maxSegRadius = segmentPoints.length > 0
+        ? Math.max(...segmentPoints.map(p => p.radius)) * maxRadius
+        : maxRadius * 0.5;
+
       return {
-        y1: startY,
-        y2: endY,
-        color: segment.deviationType === 'too_wide' ? '#C62828' : '#FF8F00',
+        x: center - maxSegRadius - 10,
+        y: Math.min(startY, endY),
+        width: (maxSegRadius + 10) * 2,
+        height: height || 2,
+        fill: segment.deviationType === 'too_wide' ? '#C62828' : '#FF8F00',
+        fillOpacity: 0.12,
+        stroke: segment.deviationType === 'too_wide' ? '#C62828' : '#FF8F00',
+        strokeWidth: 2,
+        strokeDasharray: '6,4',
         idx,
       };
     });
+  };
+
+  const deviationContourPaths = () => {
+    if (!props.generatedContour || props.deviationSegments.length === 0) return [] as { d: string; color: string; idx: number }[];
+
+    const padding = 20;
+    const effectiveHeight = props.height - padding * 2;
+    const center = centerX();
+    const maxRadius = (props.width - padding * 2) / 2;
+
+    return props.deviationSegments.map((segment, idx) => {
+      const startIdx = Math.floor(segment.startHeight * (props.generatedContour!.length - 1));
+      const endIdx = Math.floor(segment.endHeight * (props.generatedContour!.length - 1));
+      const minIdx = Math.min(startIdx, endIdx);
+      const maxIdx = Math.max(startIdx, endIdx);
+
+      const segmentPoints = props.generatedContour!.slice(minIdx, maxIdx + 1);
+      if (segmentPoints.length < 2) return null;
+
+      let d = '';
+      segmentPoints.forEach((point, i) => {
+        const x = center + point.radius * maxRadius;
+        const y = props.height - padding - point.height * effectiveHeight;
+        if (i === 0) {
+          d += `M ${x} ${y}`;
+        } else {
+          d += ` L ${x} ${y}`;
+        }
+      });
+
+      for (let i = segmentPoints.length - 1; i >= 0; i--) {
+        const point = segmentPoints[i];
+        const x = center - point.radius * maxRadius;
+        const y = props.height - padding - point.height * effectiveHeight;
+        d += ` L ${x} ${y}`;
+      }
+      d += ' Z';
+
+      return {
+        d,
+        color: segment.deviationType === 'too_wide' ? '#C62828' : '#FF8F00',
+        idx,
+      } as { d: string; color: string; idx: number };
+    }).filter(Boolean) as { d: string; color: string; idx: number }[];
   };
 
   const gridLines = () => {
@@ -173,17 +238,32 @@ export const PotteryCanvas: Component<PotteryCanvasProps> = (props) => {
           />
         </Show>
 
-        <For each={deviationHighlightPaths()}>
+        <For each={deviationHighlightRects()}>
+          {(rect) => (
+            <rect
+              x={rect.x}
+              y={rect.y}
+              width={rect.width}
+              height={rect.height}
+              fill={rect.fill}
+              fill-opacity={rect.fillOpacity}
+              stroke={rect.stroke}
+              stroke-width={rect.strokeWidth}
+              stroke-dasharray={rect.strokeDasharray}
+              rx="4"
+            />
+          )}
+        </For>
+
+        <For each={deviationContourPaths()}>
           {(seg) => (
-            <line
-              x1="0"
-              y1={seg.y1}
-              x2={props.width}
-              y2={seg.y1}
+            <path
+              d={seg.d}
+              fill={seg.color}
+              fill-opacity="0.25"
               stroke={seg.color}
-              stroke-width="2"
-              opacity="0.6"
-              stroke-dasharray="4,2"
+              stroke-width="3"
+              filter="url(#glow)"
             />
           )}
         </For>
