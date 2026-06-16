@@ -127,7 +127,9 @@ const App: Component = () => {
   });
 
   const canGenerateContour = () => {
-    return store.selectedVessel && canGenerate(gesturePoints()) && !playback.isPlaying();
+    if (!store.selectedVessel || playback.isPlaying()) return false;
+    const points = playbackRecord() ? playbackRecord()!.gesturePoints : gesturePoints();
+    return canGenerate(points);
   };
 
   const handleSelectVessel = (vessel: Vessel) => {
@@ -162,14 +164,15 @@ const App: Component = () => {
   const handleGenerateContour = () => {
     if (!store.selectedVessel || !canGenerateContour()) return;
 
-    const contour = generateContour(gesturePoints(), CANVAS_WIDTH, CANVAS_HEIGHT);
+    const currentPoints = playbackRecord() ? playbackRecord()!.gesturePoints : gesturePoints();
+    const contour = generateContour(currentPoints, CANVAS_WIDTH, CANVAS_HEIGHT);
     if (contour) {
       const result = evaluate(contour, store.selectedVessel.targetContour);
       const phasedResult = phasedTraining.evaluateAllPhases(
         contour,
         store.selectedVessel.targetContour,
         store.selectedVessel,
-        gesturePoints()
+        currentPoints
       );
 
       setStore({
@@ -178,12 +181,12 @@ const App: Component = () => {
         phasedEvaluationResult: phasedResult,
       });
 
-      if (phasedResult) {
+      if (!playbackRecord() && phasedResult) {
         phasedTraining.savePracticeRecord(phasedResult.practiceRecord);
         setStore('activeTab', 'phased');
       }
 
-      if (phasedTraining.phaseState.isPhasedMode) {
+      if (phasedTraining.phaseState.isPhasedMode && !playbackRecord()) {
         const phaseOrder = ['base_forming', 'opening', 'pulling_up', 'necking'] as const;
         const currentIndex = phaseOrder.indexOf(phasedTraining.phaseState.currentPhase);
         if (currentIndex < phaseOrder.length - 1) {
@@ -236,6 +239,21 @@ const App: Component = () => {
   const handlePlayRecord = (record: PracticeRecord) => {
     setPlaybackRecord(record);
     setStore('generatedContour', record.contour);
+
+    if (store.selectedVessel) {
+      const result = evaluate(record.contour, store.selectedVessel.targetContour);
+      const phasedResult = phasedTraining.evaluateAllPhases(
+        record.contour,
+        store.selectedVessel.targetContour,
+        store.selectedVessel,
+        record.gesturePoints
+      );
+      setStore({
+        evaluationResult: result,
+        phasedEvaluationResult: phasedResult,
+      });
+    }
+
     playback.stop();
     setPlaybackPoints([]);
   };

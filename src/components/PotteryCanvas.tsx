@@ -336,7 +336,13 @@ export const PotteryCanvas: Component<PotteryCanvasProps> = (props) => {
       </div>
 
       <Show when={props.isPhasedMode && currentPhaseDefinition()}>
-        <div class={`absolute top-2 right-2 z-10 text-xs px-3 py-2 rounded-lg ${phaseColors[props.currentPhase!].bg} border ${phaseColors[props.currentPhase!].border.replace('#', 'border-')} text-pottery-700 max-w-[200px]`}>
+        <div
+          class="absolute top-2 right-2 z-10 text-xs px-3 py-2 rounded-lg border-2 text-pottery-700 max-w-[200px]"
+          style={{
+            'background-color': phaseColors[props.currentPhase!].bg,
+            'border-color': phaseColors[props.currentPhase!].border,
+          }}
+        >
           <div class="font-medium mb-1">{currentPhaseDefinition()!.name}</div>
           <div class="text-xs opacity-80">{currentPhaseDefinition()!.tips[0]}</div>
         </div>
