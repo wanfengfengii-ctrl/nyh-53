@@ -272,6 +272,91 @@ export interface PracticeReport {
   isShared: boolean;
 }
 
+export interface PotteryClass {
+  id: string;
+  name: string;
+  teacherId: string;
+  teacherName: string;
+  studentIds: string[];
+  studentNames: Record<string, string>;
+  createdAt: number;
+  description?: string;
+}
+
+export interface Assignment {
+  id: string;
+  classId: string;
+  className: string;
+  teacherId: string;
+  teacherName: string;
+  vesselId: string;
+  vesselName: string;
+  title: string;
+  description: string;
+  createdAt: number;
+  deadline: number;
+  standardTrajectoryId?: string;
+  standardTrajectoryName?: string;
+  isActive: boolean;
+}
+
+export type SubmissionStatus = 'pending' | 'submitted' | 'graded';
+
+export interface AssignmentSubmission {
+  id: string;
+  assignmentId: string;
+  studentId: string;
+  studentName: string;
+  practiceRecord: PracticeRecord;
+  totalScore: number;
+  phaseEvaluations: PhaseEvaluation[];
+  keyDeviationPoints: KeyDeviationPoint[];
+  submittedAt: number;
+  status: SubmissionStatus;
+  teacherFeedback?: string;
+  batchFeedbackId?: string;
+}
+
+export type GroupingStrategy = 'total_score' | 'phase_weakness' | 'deviation_type';
+
+export interface StudentGroup {
+  id: string;
+  name: string;
+  strategy: GroupingStrategy;
+  studentIds: string[];
+  commonTrait: string;
+  color: string;
+}
+
+export interface BatchFeedback {
+  id: string;
+  groupId: string;
+  assignmentId: string;
+  teacherId: string;
+  teacherName: string;
+  content: string;
+  createdAt: number;
+  targetStudentIds: string[];
+}
+
+export interface ClassStatistics {
+  classId: string;
+  className: string;
+  assignmentId: string;
+  assignmentTitle: string;
+  totalStudents: number;
+  submittedCount: number;
+  pendingCount: number;
+  averageScore: number;
+  maxScore: number;
+  minScore: number;
+  scoreDistribution: { range: string; count: number }[];
+  phaseAverages: { phaseId: TrainingPhase; phaseName: string; avgScore: number }[];
+  commonWeaknesses: { phaseId: TrainingPhase; phaseName: string; count: number }[];
+  commonDeviationTypes: { type: string; count: number }[];
+  generatedAt: number;
+}
+
 export interface SparringSession {
   id: string;
   name: string;

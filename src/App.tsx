@@ -1,6 +1,6 @@
 import { Component, createSignal, createMemo, createEffect, Show } from 'solid-js';
 import { createStore } from 'solid-js/store';
-import type { Vessel, EvaluationResult, ContourPoint, Point, PhasedEvaluationResult, PracticeRecord } from '@/types/pottery';
+import type { Vessel, EvaluationResult, ContourPoint, Point, PhasedEvaluationResult, PracticeRecord, PhaseEvaluation, KeyDeviationPoint, ClassStatistics } from '@/types/pottery';
 import { MIN_POINTS_FOR_CONTOUR } from '@/types/pottery';
 import { VesselSelector } from './components/VesselSelector';
 import { PotteryCanvas } from './components/PotteryCanvas';
@@ -16,13 +16,17 @@ import { StudentPanel } from './components/StudentPanel';
 import { ReportPanel } from './components/ReportPanel';
 import { DualComparisonCanvas } from './components/DualComparisonCanvas';
 import { TimelineCommentPlayback } from './components/TimelineCommentPlayback';
+import { ClassAssignmentPanel } from './components/ClassAssignmentPanel';
+import { StudentAssignmentPanel } from './components/StudentAssignmentPanel';
 import { useGestureTracking } from './hooks/useGestureTracking';
 import { useContourGenerator } from './hooks/useContourGenerator';
 import { useEvaluation } from './hooks/useEvaluation';
 import { usePlayback } from './hooks/usePlayback';
 import { usePhasedTraining } from './hooks/usePhasedTraining';
 import { useSparring } from './hooks/useSparring';
-import { Layers, RotateCcw, Trash2, PlayCircle, Sparkles, Info, Target, BarChart3, History, FileText, Users, GitCompare } from 'lucide-solid';
+import { useClassAssignment } from './hooks/useClassAssignment';
+import { vessels } from './data/vessels';
+import { Layers, RotateCcw, Trash2, PlayCircle, Sparkles, Info, Target, BarChart3, History, FileText, Users, GitCompare, ClipboardList } from 'lucide-solid';
 
 const CANVAS_WIDTH = 600;
 const CANVAS_HEIGHT = 500;
@@ -36,7 +40,7 @@ interface Store {
   showClearConfirm: boolean;
   showVesselChangeConfirm: boolean;
   pendingVessel: Vessel | null;
-  activeTab: 'evaluation' | 'phased' | 'history' | 'sparring' | 'reports';
+  activeTab: 'evaluation' | 'phased' | 'history' | 'sparring' | 'reports' | 'homework';
   showDualComparison: boolean;
 }
 
@@ -61,6 +65,7 @@ const App: Component = () => {
 
   const phasedTraining = usePhasedTraining();
   const sparring = useSparring();
+  const classAssignment = useClassAssignment();
 
   const canDraw = () => !!store.selectedVessel && !playbackPoints().length && !playbackRecord();
 
@@ -349,6 +354,28 @@ const App: Component = () => {
     setStore('activeTab', role === 'teacher' ? 'sparring' : 'sparring');
   };
 
+  const handleSubmitAssignment = (
+    assignmentId: string,
+    practiceRecord: PracticeRecord,
+    phaseEvaluations: PhaseEvaluation[],
+    keyDeviationPoints: KeyDeviationPoint[],
+    totalScore: number
+  ) => {
+    classAssignment.submitAssignment(
+      assignmentId,
+      sparring.currentUser().id,
+      sparring.currentUser().name,
+      practiceRecord,
+      phaseEvaluations,
+      keyDeviationPoints,
+      totalScore
+    );
+  };
+
+  const handleExportStatistics = (stats: ClassStatistics, format: 'json' | 'txt') => {
+    classAssignment.downloadStatistics(stats, format);
+  };
+
   const showTimelineComments = () => sparring.currentUser().role === 'teacher' && sparring.selectedStandardTrajectory();
 
   return (
@@ -362,7 +389,7 @@ const App: Component = () => {
               </div>
               <div>
                 <h1 class="text-2xl font-display text-pottery-800">陶艺拉坯对练点评系统</h1>
-                <p class="text-sm text-pottery-500">多用户对练 · 标准轨迹 · 精准点评 · 练习报告</p>
+                <p class="text-sm text-pottery-500">多用户对练 · 标准轨迹 · 精准点评 · 练习报告 · 班级作业</p>
               </div>
             </div>
             <div class="flex items-center gap-4 flex-wrap">
@@ -641,6 +668,17 @@ const App: Component = () => {
                   <History class="w-3.5 h-3.5" />
                   历史
                 </button>
+                <button
+                  onClick={() => setStore('activeTab', 'homework')}
+                  class={`flex-1 flex items-center justify-center gap-1.5 py-2 px-2 rounded-md text-xs font-medium transition-colors ${
+                    store.activeTab === 'homework'
+                      ? 'bg-white text-pottery-800 shadow-sm'
+                      : 'text-pottery-500 hover:text-pottery-700'
+                  }`}
+                >
+                  <ClipboardList class="w-3.5 h-3.5" />
+                  作业
+                </button>
               </div>
 
               <Show when={store.activeTab === 'evaluation'}>
@@ -720,6 +758,30 @@ const App: Component = () => {
                   onPlayRecord={handlePlayRecord}
                   onClearHistory={phasedTraining.clearPracticeHistory}
                 />
+              </Show>
+
+              <Show when={store.activeTab === 'homework'}>
+                <Show when={sparring.currentUser().role === 'teacher'}>
+                  <ClassAssignmentPanel
+                    classHook={classAssignment}
+                    vessels={vessels}
+                    currentUser={sparring.currentUser()}
+                    onExportStatistics={handleExportStatistics}
+                  />
+                </Show>
+                <Show when={sparring.currentUser().role === 'student'}>
+                  <StudentAssignmentPanel
+                    classHook={classAssignment}
+                    currentStudent={sparring.currentUser()}
+                    selectedVessel={store.selectedVessel}
+                    onSubmitAssignment={handleSubmitAssignment}
+                    practiceRecord={store.phasedEvaluationResult?.practiceRecord || null}
+                    phaseEvaluations={store.phasedEvaluationResult?.phaseEvaluations || null}
+                    keyDeviationPoints={studentKeyDeviationPoints()}
+                    totalScore={store.phasedEvaluationResult?.totalScore ?? null}
+                    hasData={!!store.generatedContour}
+                  />
+                </Show>
               </Show>
             </div>
           </div>
