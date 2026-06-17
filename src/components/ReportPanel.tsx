@@ -121,7 +121,10 @@ export const ReportPanel: Component<ReportPanelProps> = (props) => {
                   >
                     <button
                       class="mt-0.5 p-1 rounded hover:bg-pottery-100 text-pottery-500"
-                      onClick={(e) => e.stopPropagation()}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleExpand(report.id);
+                      }}
                     >
                       {isExpanded ? <ChevronDown class="w-4 h-4" /> : <ChevronRight class="w-4 h-4" />}
                     </button>

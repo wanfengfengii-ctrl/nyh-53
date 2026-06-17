@@ -89,6 +89,27 @@ const App: Component = () => {
     handlePlaybackPoint
   );
 
+  const [standardPlaybackPoints, setStandardPlaybackPoints] = createSignal<Point[]>([]);
+
+  const handleStandardPlaybackPoint = (_point: Point, index: number) => {
+    const std = sparring.selectedStandardTrajectory();
+    if (std) {
+      setStandardPlaybackPoints(std.gesturePoints.slice(0, index + 1));
+    }
+  };
+
+  const standardPlayback = usePlayback(
+    () => sparring.selectedStandardTrajectory()?.gesturePoints || [],
+    handleStandardPlaybackPoint
+  );
+
+  createEffect(() => {
+    if (sparring.selectedStandardTrajectory()) {
+      standardPlayback.reset();
+      setStandardPlaybackPoints([]);
+    }
+  });
+
   const targetContour = createMemo(() => store.selectedVessel?.targetContour || []);
 
   const heatmapData = createMemo(() => {
@@ -216,7 +237,7 @@ const App: Component = () => {
         phasedEvaluationResult: phasedResult,
       });
 
-      if (!playbackRecord() && phasedResult) {
+      if (!playbackRecord() && phasedResult && sparring.currentUser().role === 'student') {
         phasedTraining.savePracticeRecord(phasedResult.practiceRecord);
       }
 
@@ -384,7 +405,13 @@ const App: Component = () => {
                 <PotteryCanvas
                   width={CANVAS_WIDTH}
                   height={CANVAS_HEIGHT}
-                  gesturePoints={playbackRecord() ? playbackRecord()!.gesturePoints : gesturePoints()}
+                  gesturePoints={
+                    showTimelineComments()
+                      ? sparring.selectedStandardTrajectory()!.gesturePoints
+                      : playbackRecord()
+                        ? playbackRecord()!.gesturePoints
+                        : gesturePoints()
+                  }
                   targetVessel={store.selectedVessel}
                   generatedContour={store.generatedContour}
                   deviationSegments={store.evaluationResult?.deviationSegments || []}
@@ -397,7 +424,7 @@ const App: Component = () => {
                   onTouchStart={handleTouchStart}
                   onTouchMove={handleTouchMove}
                   onTouchEnd={handleTouchEnd}
-                  playbackPoints={playbackPoints()}
+                  playbackPoints={showTimelineComments() ? standardPlaybackPoints() : playbackPoints()}
                   isPhasedMode={phasedTraining.phaseState.isPhasedMode}
                   currentPhase={phasedTraining.phaseState.currentPhase}
                   heatmapData={heatmapData()}
@@ -498,16 +525,22 @@ const App: Component = () => {
                 <Show when={showTimelineComments()}>
                   <TimelineCommentPlayback
                     points={sparring.selectedStandardTrajectory()!.gesturePoints}
-                    isPlaying={playback.isPlaying()}
-                    currentIndex={playback.currentIndex()}
-                    playbackSpeed={playback.playbackSpeed()}
-                    canPlayback={playback.canPlayback()}
-                    onPlay={handlePlaybackStart}
-                    onPause={playback.pause}
-                    onStop={handlePlaybackStop}
-                    onReset={handlePlaybackReset}
-                    onSpeedChange={playback.setSpeed}
-                    onSeek={handleSeek}
+                    isPlaying={standardPlayback.isPlaying()}
+                    currentIndex={standardPlayback.currentIndex()}
+                    playbackSpeed={standardPlayback.playbackSpeed()}
+                    canPlayback={standardPlayback.canPlayback()}
+                    onPlay={() => standardPlayback.play()}
+                    onPause={() => standardPlayback.pause()}
+                    onStop={() => {
+                      standardPlayback.stop();
+                      setStandardPlaybackPoints([]);
+                    }}
+                    onReset={() => {
+                      standardPlayback.reset();
+                      setStandardPlaybackPoints([]);
+                    }}
+                    onSpeedChange={(s) => standardPlayback.setSpeed(s)}
+                    onSeek={(i) => standardPlayback.goToIndex(i)}
                     selectedTrajectory={sparring.selectedStandardTrajectory()}
                     editingTimelineComment={sparring.editingTimelineComment()}
                     setEditingTimelineComment={sparring.setEditingTimelineComment}
