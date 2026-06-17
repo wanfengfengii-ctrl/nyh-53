@@ -193,6 +193,106 @@ export const TRAINING_PHASES: PhaseDefinition[] = [
   },
 ];
 
+export type UserRole = 'teacher' | 'student';
+
+export interface User {
+  id: string;
+  name: string;
+  role: UserRole;
+  avatar?: string;
+}
+
+export interface PhaseComment {
+  id: string;
+  phaseId: TrainingPhase;
+  phaseName: string;
+  teacherId: string;
+  teacherName: string;
+  content: string;
+  createdAt: number;
+  timestampStart?: number;
+  timestampEnd?: number;
+}
+
+export interface TimelineComment {
+  id: string;
+  teacherId: string;
+  teacherName: string;
+  content: string;
+  createdAt: number;
+  timestamp: number;
+  pointIndex: number;
+}
+
+export interface StandardTrajectory {
+  id: string;
+  name: string;
+  description: string;
+  vesselId: string;
+  vesselName: string;
+  teacherId: string;
+  teacherName: string;
+  createdAt: number;
+  updatedAt: number;
+  gesturePoints: Point[];
+  contour: ContourPoint[];
+  phaseComments: PhaseComment[];
+  timelineComments: TimelineComment[];
+  difficulty: 'easy' | 'medium' | 'hard';
+}
+
+export interface KeyDeviationPoint {
+  height: number;
+  radiusDiff: number;
+  type: 'wider' | 'narrower';
+  severity: 'low' | 'medium' | 'high';
+  relatedComment?: PhaseComment | TimelineComment;
+}
+
+export interface PracticeReport {
+  id: string;
+  studentId: string;
+  studentName: string;
+  teacherId?: string;
+  teacherName?: string;
+  vesselId: string;
+  vesselName: string;
+  standardTrajectoryId?: string;
+  standardTrajectoryName?: string;
+  createdAt: number;
+  practiceRecord: PracticeRecord;
+  standardContour?: ContourPoint[];
+  phaseEvaluations: PhaseEvaluation[];
+  totalScore: number;
+  keyDeviationPoints: KeyDeviationPoint[];
+  phaseComments: PhaseComment[];
+  timelineComments: TimelineComment[];
+  teacherFeedback?: string;
+  shareUrl?: string;
+  isShared: boolean;
+}
+
+export interface SparringSession {
+  id: string;
+  name: string;
+  vesselId: string;
+  vesselName: string;
+  standardTrajectoryId: string;
+  teacherId: string;
+  teacherName: string;
+  studentIds: string[];
+  createdAt: number;
+  deadline?: number;
+  isActive: boolean;
+  studentReports: {
+    studentId: string;
+    studentName: string;
+    reportId: string;
+    submittedAt: number;
+    score: number;
+  }[];
+}
+
 export const MIN_POINTS_FOR_CONTOUR = 50;
 export const MATCHING_THRESHOLD = 70;
 export const MAX_DEVIATION_SEGMENTS = 3;
